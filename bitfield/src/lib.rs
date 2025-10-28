@@ -11,5 +11,49 @@
 // From the perspective of a user of this crate, they get all the necessary APIs
 // (macro, trait, struct) through the one bitfield crate.
 pub use bitfield_impl::bitfield;
+pub mod checks;
 
-// TODO other things
+pub trait Specifier {
+    const BITS: usize;
+}
+
+pub struct FixedBits<const N: usize> ();
+
+impl<const N: usize> Specifier for FixedBits<N> {
+    const BITS: usize = N;
+}
+
+macro_rules! fixed_bytes_aliases {
+    ($($name:ident<$N:literal>),* $(,)?) => {
+        $(
+            pub type $name = FixedBits<$N>;
+        )*
+    };
+}
+
+fixed_bytes_aliases! {
+    B1<1>,
+    B2<2>,
+    B3<3>,
+    B4<4>,
+    B5<5>,
+    B6<6>,
+    B7<7>,
+    B8<8>,
+    B9<9>,
+    B10<10>,
+    B11<11>,
+    B12<12>,
+    B13<13>,
+    B14<14>,
+    B15<15>,
+    B16<16>,
+    B17<17>,
+    B18<18>,
+    B19<19>,
+    B20<20>,
+    B21<21>,
+    B22<22>,
+    B23<23>,
+    B24<24>,
+}

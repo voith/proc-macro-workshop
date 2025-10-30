@@ -9,10 +9,8 @@ use syn::{
 pub fn bitfield(args: TokenStream, input: TokenStream) -> TokenStream {
     let _ = args;
     let input = parse_macro_input!(input as DeriveInput);
-    // print_ast(input.clone());
     let vis = &input.vis;
     let name = &input.ident;
-    
 
     let data_struct = match &input.data {
         syn::Data::Struct(s) => s,
@@ -64,9 +62,4 @@ pub fn bitfield(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
     expanded.into()
-}
-
-#[allow(dead_code)]
-fn print_ast(input: syn::DeriveInput) {
-    eprintln!("=== syn::DeriveInput AST ===\n{:#?}", input);
 }

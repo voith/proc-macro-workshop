@@ -1,9 +1,6 @@
-use proc_macro::{TokenStream};
+use proc_macro::TokenStream;
 use quote::quote;
-use syn::{
-    parse_macro_input,
-    DeriveInput,
-};
+use syn::{parse_macro_input, DeriveInput};
 
 #[proc_macro_attribute]
 pub fn bitfield(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -14,9 +11,11 @@ pub fn bitfield(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let data_struct = match &input.data {
         syn::Data::Struct(s) => s,
-        _ => return syn::Error::new_spanned(
-                &input, "Expected a struct"
-            ).to_compile_error().into(),
+        _ => {
+            return syn::Error::new_spanned(&input, "Expected a struct")
+                .to_compile_error()
+                .into()
+        }
     };
 
     // Build a const expression that sums all field Specifier::BITS.
@@ -35,11 +34,9 @@ pub fn bitfield(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
     } else {
-        return syn::Error::new_spanned(
-            &data_struct.fields,
-            "#[bitfield] requires named fields"
-        )
-        .to_compile_error().into();
+        return syn::Error::new_spanned(&data_struct.fields, "#[bitfield] requires named fields")
+            .to_compile_error()
+            .into();
     }
     // Cannot evaluate to a concrete usize inside the macro because it depends on
     // associated consts. Keep it as tokens and evaluate in the generated code.

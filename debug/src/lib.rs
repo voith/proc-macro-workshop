@@ -1,18 +1,10 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{
-    parse_macro_input,
-    parse_quote,
-    DeriveInput,
-    GenericArgument,
-    PathArguments,
-    Type,
-    TypePath,
-    WherePredicate,
-    Attribute
-};
 use std::collections::HashSet;
-
+use syn::{
+    parse_macro_input, parse_quote, Attribute, DeriveInput, GenericArgument, PathArguments, Type,
+    TypePath, WherePredicate,
+};
 
 // fn main() {
 //     let ty: syn::Type = syn::parse_str("Option<Vec<String>>").unwrap();
@@ -51,27 +43,27 @@ pub fn derive(input: TokenStream) -> TokenStream {
         .map(|tp| tp.ident.clone())
         .collect();
     for field in &data_struct.fields {
-            // Field-level escape hatch: #[debug(bound = "...")]
-            let (field_overrides, _fmt_ignored_here) = extract_debug_attrs(&field.attrs);
-            let has_field_override = !field_overrides.is_empty();
-            field_level_overrides.extend(field_overrides);
+        // Field-level escape hatch: #[debug(bound = "...")]
+        let (field_overrides, _fmt_ignored_here) = extract_debug_attrs(&field.attrs);
+        let has_field_override = !field_overrides.is_empty();
+        field_level_overrides.extend(field_overrides);
 
-            if has_struct_level_override {
-                // Skip all inference when struct-level override is present
-                continue;
-            }
+        if has_struct_level_override {
+            // Skip all inference when struct-level override is present
+            continue;
+        }
 
-            if has_field_override {
-                // Skip inference for this field; we already added its manual bounds
-                continue;
-            }
+        if has_field_override {
+            // Skip inference for this field; we already added its manual bounds
+            continue;
+        }
 
-            collect_constraints_excluding_phantom(
-                &field.ty,
-                &generic_idents,
-                &mut used_type_params,
-                &mut assoc_debug_bounds,
-            );
+        collect_constraints_excluding_phantom(
+            &field.ty,
+            &generic_idents,
+            &mut used_type_params,
+            &mut assoc_debug_bounds,
+        );
     }
 
     // Build generics / where clause
@@ -94,7 +86,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
             }
         } else {
             for ty in assoc_debug_bounds {
-                where_clause.predicates.push(parse_quote!(#ty: ::core::fmt::Debug));
+                where_clause
+                    .predicates
+                    .push(parse_quote!(#ty: ::core::fmt::Debug));
             }
             for pred in field_level_overrides {
                 where_clause.predicates.push(pred);
@@ -143,15 +137,29 @@ fn collect_constraints_excluding_phantom(
 ) {
     match ty {
         Type::Path(tp) => handle_type_path(tp, generics, used_params, assoc_bounds),
-        Type::Reference(r) => collect_constraints_excluding_phantom(&r.elem, generics, used_params, assoc_bounds),
-        Type::Tuple(t) => {
-            for elem in &t.elems { collect_constraints_excluding_phantom(elem, generics, used_params, assoc_bounds); }
+        Type::Reference(r) => {
+            collect_constraints_excluding_phantom(&r.elem, generics, used_params, assoc_bounds)
         }
-        Type::Array(a) => collect_constraints_excluding_phantom(&a.elem, generics, used_params, assoc_bounds),
-        Type::Slice(s) => collect_constraints_excluding_phantom(&s.elem, generics, used_params, assoc_bounds),
-        Type::Ptr(p) => collect_constraints_excluding_phantom(&p.elem, generics, used_params, assoc_bounds),
-        Type::Group(g) => collect_constraints_excluding_phantom(&g.elem, generics, used_params, assoc_bounds),
-        Type::Paren(p) => collect_constraints_excluding_phantom(&p.elem, generics, used_params, assoc_bounds),
+        Type::Tuple(t) => {
+            for elem in &t.elems {
+                collect_constraints_excluding_phantom(elem, generics, used_params, assoc_bounds);
+            }
+        }
+        Type::Array(a) => {
+            collect_constraints_excluding_phantom(&a.elem, generics, used_params, assoc_bounds)
+        }
+        Type::Slice(s) => {
+            collect_constraints_excluding_phantom(&s.elem, generics, used_params, assoc_bounds)
+        }
+        Type::Ptr(p) => {
+            collect_constraints_excluding_phantom(&p.elem, generics, used_params, assoc_bounds)
+        }
+        Type::Group(g) => {
+            collect_constraints_excluding_phantom(&g.elem, generics, used_params, assoc_bounds)
+        }
+        Type::Paren(p) => {
+            collect_constraints_excluding_phantom(&p.elem, generics, used_params, assoc_bounds)
+        }
         _ => {}
     }
 }
@@ -164,7 +172,9 @@ fn handle_type_path(
 ) {
     // Ignore PhantomData completely
     if let Some(seg) = tp.path.segments.last() {
-        if seg.ident == "PhantomData" { return; }
+        if seg.ident == "PhantomData" {
+            return;
+        }
     }
 
     // Qualified path like <T as Trait>::Assoc
@@ -198,7 +208,12 @@ fn handle_type_path(
             PathArguments::AngleBracketed(ab) => {
                 for arg in &ab.args {
                     if let GenericArgument::Type(t) = arg {
-                        collect_constraints_excluding_phantom(t, generics, used_params, assoc_bounds);
+                        collect_constraints_excluding_phantom(
+                            t,
+                            generics,
+                            used_params,
+                            assoc_bounds,
+                        );
                     }
                 }
             }
@@ -213,25 +228,43 @@ fn handle_type_path(
 }
 
 fn uses_generic(ty: &Type, generics: &HashSet<syn::Ident>) -> bool {
-    struct Finder<'a> { gens: &'a HashSet<syn::Ident>, found: bool }
+    struct Finder<'a> {
+        gens: &'a HashSet<syn::Ident>,
+        found: bool,
+    }
     impl<'a> Finder<'a> {
         fn visit(&mut self, ty: &Type) {
             match ty {
                 Type::Path(tp) => {
                     if tp.qself.is_none() && tp.path.segments.len() == 1 {
                         let seg = tp.path.segments.last().unwrap();
-                        if seg.arguments.is_empty() && self.gens.contains(&seg.ident) { self.found = true; return; }
+                        if seg.arguments.is_empty() && self.gens.contains(&seg.ident) {
+                            self.found = true;
+                            return;
+                        }
                     }
                     for seg in &tp.path.segments {
                         if let PathArguments::AngleBracketed(ab) = &seg.arguments {
                             for arg in &ab.args {
-                                if let GenericArgument::Type(t) = arg { self.visit(t); if self.found { return; } }
+                                if let GenericArgument::Type(t) = arg {
+                                    self.visit(t);
+                                    if self.found {
+                                        return;
+                                    }
+                                }
                             }
                         }
                     }
                 }
                 Type::Reference(r) => self.visit(&r.elem),
-                Type::Tuple(t) => for e in &t.elems { self.visit(e); if self.found { return; } },
+                Type::Tuple(t) => {
+                    for e in &t.elems {
+                        self.visit(e);
+                        if self.found {
+                            return;
+                        }
+                    }
+                }
                 Type::Array(a) => self.visit(&a.elem),
                 Type::Slice(s) => self.visit(&s.elem),
                 Type::Ptr(p) => self.visit(&p.elem),
@@ -241,7 +274,10 @@ fn uses_generic(ty: &Type, generics: &HashSet<syn::Ident>) -> bool {
             }
         }
     }
-    let mut f = Finder { gens: generics, found: false };
+    let mut f = Finder {
+        gens: generics,
+        found: false,
+    };
     f.visit(ty);
     f.found
 }
@@ -250,7 +286,9 @@ fn parse_bounds_str(s: &str) -> Vec<WherePredicate> {
     let mut preds = Vec::new();
     for part in s.split(',') {
         let trimmed = part.trim();
-        if trimmed.is_empty() { continue; }
+        if trimmed.is_empty() {
+            continue;
+        }
         match syn::parse_str::<WherePredicate>(trimmed) {
             Ok(p) => preds.push(p),
             Err(_) => {
@@ -268,7 +306,11 @@ fn extract_debug_attrs(attrs: &[Attribute]) -> (Vec<WherePredicate>, Option<Stri
         if attr.path().is_ident("debug") {
             // NameValue form: #[debug = "..."]
             if let syn::Meta::NameValue(nv) = &attr.meta {
-                if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(lit_str), .. }) = &nv.value {
+                if let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(lit_str),
+                    ..
+                }) = &nv.value
+                {
                     fmt = Some(lit_str.value());
                     continue;
                 }

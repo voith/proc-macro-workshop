@@ -17,7 +17,7 @@ pub trait Specifier {
     const BITS: usize;
 }
 
-pub struct FixedBits<const N: usize> ();
+pub struct FixedBits<const N: usize>();
 
 impl<const N: usize> Specifier for FixedBits<N> {
     const BITS: usize = N;
